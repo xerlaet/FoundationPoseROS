@@ -1,0 +1,83 @@
+# -------------------------
+# TensorBoard
+# -------------------------
+# tensorboard>=2.17.0
+
+# -------------------------
+# JupyterLab and Widgets
+# -------------------------
+jupyterlab>=3.0.0
+ipywidgets>=8.0.3
+
+# -------------------------
+# ROS
+# -------------------------
+rospkg>=1.5.0
+pycryptodomex>=3.19.0
+gnupg>=2.3.1
+netifaces>=0.11.0
+
+# -------------------------
+# Build Tools and Extensions
+# -------------------------
+ninja
+numba
+pybind11>=2.11.0
+
+# -------------------------
+# Scientific Computing and Data Processing
+# -------------------------
+numpy>=1.26.4,<2
+scipy==1.14.1
+scikit-learn
+scikit-image>=0.24.0
+matplotlib>=3.9.1
+pandas[excel,html]
+tqdm>=4.66.1
+h5py
+ruamel.yaml
+pyyaml
+omegaconf
+iopath>=0.1.10
+
+# -------------------------
+# Computer Vision Libraries
+# -------------------------
+imageio
+pillow>=9.4.0
+opencv-python>=4.7.0
+opencv-contrib-python>=4.7.0
+av>=13.0.0
+trimesh==4.5.2
+pyrender>=0.1.45
+pyglet<=2.0.0
+xatlas==0.0.9
+open3d>=0.18.0
+pyopengl>=3.1.0
+pyopengl-accelerate>=3.1.0; sys_platform != 'darwin'  # Skip on macOS
+supervision>=0.25.1
+
+# -------------------------
+# Pose Estimation Libraries
+# -------------------------
+# mediapipe==0.10.14
+
+# -------------------------
+# Dataset Handling
+# -------------------------
+# pycocotools>=2.0.8
+
+# -------------------------
+# File Download Utilities
+# -------------------------
+gdown==5.2.0
+
+# -------------------------
+# SMPL-X Model
+# -------------------------
+# smplx==0.1.28
+
+# -------------------------
+# ultralytics
+# -------------------------
+ultralytics==8.3.113

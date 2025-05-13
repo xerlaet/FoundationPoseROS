@@ -2,7 +2,7 @@
 
 ## Overview
 
-FoundationPoseROS: A real-time 6D object pose estimation pipeline that integrates SAM2 for segmentation and FoundationPose for model-based pose estimation, with support for both ROS1 and ROS2 systems.
+FoundationPoseROS: A real-time 6D object pose estimation pipeline that integrates SAM2^[1] for segmentation and FoundationPose^[2] for model-based pose estimation, with support for both ROS1 and ROS2 systems.
 
 ## Contents
 
@@ -18,6 +18,9 @@ FoundationPoseROS: A real-time 6D object pose estimation pipeline that integrate
         - [Method 2: Launch with initial pose:](#method-2-launch-with-initial-pose)
         - [Method 3: Launch with control Panel:](#method-3-launch-with-control-panel)
     - [2. Demo of Control Panel](#2-demo-of-control-panel)
+  - [License](#license)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
 
 ## Environment Setup
 
@@ -71,6 +74,12 @@ bash scripts/install_foundationpose.sh
 
 # Download checkpoint
 bash scripts/download_models.sh --foundationpose
+```
+
+- Download SAM2 models:
+
+```bash
+wget https://github.com/ultralytics/assets/releases/download/v8.3.0/sam2.1_t.pt --O ./checkpoints/sam2.1_t.pt
 ```
 
 ## Usage (ROS1)
@@ -127,7 +136,7 @@ python tools/run_foundation_pose_panel.py \
 - Step2-2: Segment the object
   - `ctr + left click` to add positive points
   - `shift + right click` to add negative points
-  ![segment object](./docs/resources/images/fdpose_panel_segment_image.png)
+    ![segment object](./docs/resources/images/fdpose_panel_segment_image.png)
 - Step2-3: Add the mask image
   ![add mask image](./docs/resources/images/fdpose_panel_add_mask.png)
 - Step2-4: Save the mask image and exit the segmentation window
@@ -138,3 +147,45 @@ python tools/run_foundation_pose_panel.py \
 ### 2. Demo of Control Panel
 
 ![fdpose_panel_demo](./docs/resources/videos/run_fdpose_panel_demo.gif)
+
+## License
+
+This project uses multiple licenses:
+
+- All original code in this repository is released under the [MIT License](LICENSE).
+- Code derived from [FoundationPose](https://github.com/NVlabs/FoundationPose) is subject to the **NVIDIA Source Code License (© 2024 NVIDIA Corporation)**.
+
+## Acknowledgements
+
+This project includes and modifies code from [FoundationPose](https://github.com/NVlabs/FoundationPose) in the [wrapper](./source/RosPoseToolkit/pose_toolkit/wrappers/foundationpose.py) code, which is licensed under the NVIDIA Source Code License (© 2024 NVIDIA Corporation). The original source code is available at: https://github.com/NVlabs/FoundationPose
+
+Modifications include:
+
+- Added support for `prev_pose` input to `track_one`.
+- Added `init_ob_pos_center` input to `register`.
+- Exposed parameters `rotation_grid_min_n_views` and `rotation_grid_inplane_step` at initialization.
+
+## References
+
+[1] SAM2:
+
+```bibtex
+@article{ravi2024sam2,
+  title={SAM 2: Segment Anything in Images and Videos},
+  author={Ravi, Nikhila and Gabeur, Valentin and Hu, Yuan-Ting and Hu, Ronghang and Ryali, Chaitanya and Ma, Tengyu and Khedr, Haitham and R{\"a}dle, Roman and Rolland, Chloe and Gustafson, Laura and Mintun, Eric and Pan, Junting and Alwala, Kalyan Vasudev and Carion, Nicolas and Wu, Chao-Yuan and Girshick, Ross and Doll{\'a}r, Piotr and Feichtenhofer, Christoph},
+  journal={arXiv preprint arXiv:2408.00714},
+  url={https://arxiv.org/abs/2408.00714},
+  year={2024}
+}
+```
+
+[2] FoundationPose:
+
+```bibtex
+@InProceedings{foundationposewen2024,
+author        = {Bowen Wen, Wei Yang, Jan Kautz, Stan Birchfield},
+title         = {{FoundationPose}: Unified 6D Pose Estimation and Tracking of Novel Objects},
+booktitle     = {CVPR},
+year          = {2024},
+}
+```

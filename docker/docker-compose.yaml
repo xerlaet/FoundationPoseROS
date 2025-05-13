@@ -1,0 +1,92 @@
+# Reusable extensions
+x-default-hocap-volumes: &default-hocap-volumes
+  - type: bind
+    source: ${PROJ_ROOT}
+    target: /home/${DOCKER_USER_ARG}/code
+  - type: bind
+    source: /tmp/.X11-unix
+    target: /tmp/.X11-unix
+  - type: bind
+    source: /etc/localtime
+    target: /etc/localtime
+    read_only: true
+  - type: bind
+    source: ${PROJ_ROOT}/docker/config/apriltag_ros
+    target: /opt/catkin_ws/apriltag_ros/src/apriltag_ros/apriltag_ros/config
+  # https://github.com/IntelRealSense/realsense-ros/issues/2964#issuecomment-1878364150
+  # - type: bind
+  #   source: /dev
+  #   target: /dev
+  # These volumes follow from this page
+  # https://docs.omniverse.nvidia.com/app_isaacsim/app_isaacsim/install_faq.html#save-isaac-sim-configs-on-local-disk
+  # - type: bind
+  #   source: ${ISAAC_CACHE_OV}
+  #   target: /home/${DOCKER_USER_ARG}/.cache/ov
+  # - type: bind
+  #   source: ${ISAAC_CACHE_PIP}
+  #   target: /home/${DOCKER_USER_ARG}/.cache/pip
+  # - type: bind
+  #   source: ${ISAAC_CACHE_GL}
+  #   target: /home/${DOCKER_USER_ARG}/.cache/nvidia/GLCache
+  # - type: bind
+  #   source: ${ISAAC_CACHE_COMPUTE}
+  #   target: /home/${DOCKER_USER_ARG}/.nv/ComputeCache
+  # - type: bind
+  #   source: ${ISAAC_LOGS}
+  #   target: /home/${DOCKER_USER_ARG}/.nvidia-omniverse/logs
+  # - type: bind
+  #   source: ${ISAAC_DATA}
+  #   target: /home/${DOCKER_USER_ARG}/.local/share/ov/data
+  # - type: bind
+  #   source: ${ISAAC_DOCS}
+  #   target: /home/${DOCKER_USER_ARG}/Documents
+
+x-default-hocap-environment: &default-hocap-environment
+  DISPLAY: ${DISPLAY}
+  TERM: ${TERM}
+  QT_X11_NO_MITSHM: 1
+
+x-default-hocap-deploy: &default-hocap-deploy
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [ gpu ]
+
+services:
+  posekit-ros1:
+    profiles:
+      - ros1
+    container_name: posekit-ros1
+    image: irvlutd/posekit-ros1:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ros1
+      args:
+        - USER_NAME_ARG=${DOCKER_USER_ARG}
+        - USER_UID_ARG=${DOCKER_USER_UID_ARG}
+        - USER_GID_ARG=${DOCKER_USER_GID_ARG}
+        - TORCH_CUDA_ARCH_LIST_ARG=${TORCH_CUDA_ARCH_LIST_ARG}
+        - ROS1_APT_PACKAGE_ARG=${ROS1_APT_PACKAGE_ARG}
+        - CATWIN_WS_DIR_ARG=/opt/catkin_ws
+    environment: *default-hocap-environment
+    volumes: *default-hocap-volumes
+    deploy: *default-hocap-deploy
+    network_mode: host
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+      - /dev/snd:/dev/snd
+      - /dev # if you prefer to simplify all device mappings
+    device_cgroup_rules:
+      - 'c 81:* rmw' # All /dev/video*
+      - 'c 189:* rmw' # USB buses
+      - 'c 239:* rmw' # HID devices (Azure Kinect)
+      - 'c 116:* rmw' # ALSA sound devices
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp=unconfined
+    privileged: true
+    stdin_open: true
+    tty: true

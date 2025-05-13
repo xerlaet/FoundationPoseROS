@@ -1,0 +1,179 @@
+# --------------------- Base Configuration ---------------------
+ARG BASE_DIST=ubuntu20.04
+ARG CUDA_VERSION=11.8.0
+
+# https://gitlab.com/nvidia/cuda
+FROM nvidia/cuda:${CUDA_VERSION}-devel-${BASE_DIST} AS ros1-base
+
+LABEL version="1.0"
+LABEL description="Ubuntu 20.04 + CUDA 11.8 + OpenGL + Vulkan SDK + ROS Noetic + Miniconda3 + LibRealSense + Azure Kinect SDK"
+
+# --------------------- Arguments ---------------------
+ARG USER_NAME_ARG="my_user"
+ARG USER_UID_ARG=1000
+ARG USER_GID_ARG=1000
+ARG TORCH_CUDA_ARCH_LIST_ARG="7.5 8.0 8.6+PTX"
+ARG ROS1_APT_PACKAGES_ARG="ros-noetic-desktop"
+ARG CATWIN_WS_DIR_ARG="/opt/catkin_ws"
+
+# --------------------- Environment Variables ---------------------
+ENV NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=all \
+    LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    TORCH_CUDA_ARCH_LIST=${TORCH_CUDA_ARCH_LIST_ARG} \
+    CUDA_HOME=/usr/local/cuda \
+    LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu:/usr/lib/i386-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}:/usr/local/nvidia/lib:/usr/local/nvidia/lib64 \
+    DEBIAN_FRONTEND=noninteractive
+
+SHELL [ "/bin/bash", "-c"]
+USER root
+WORKDIR /
+
+# --------------------- Base Packages and Graphics Support ---------------------
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update --fix-missing && apt-get install -qq -y --no-install-recommends \
+    build-essential gcc g++ cmake make pkg-config \
+    software-properties-common ca-certificates curl wget git zsh tmux unzip sudo gnupg2 \
+    # OpenGL + dependencies
+    libx11-dev libxext-dev libxi-dev libxrandr-dev libxinerama-dev libxcursor-dev \
+    libglu1-mesa-dev libgles2-mesa-dev libgl1-mesa-glx libgl1-mesa-dev \
+    libglib2.0-0 ncurses-term libatomic1 \
+    freeglut3 freeglut3-dev libglfw3 libglfw3-dev libglew-dev libglm-dev \
+    libfreeimage-dev libosmesa6-dev libfontconfig1 libfreetype-dev \
+    # Nvidia glvnd
+    libsm6 libxdmcp6 libxcb1 libxext6 libx11-6 libgomp1 libxau6  \
+    libglvnd0 libgl1 libglx0 libegl1 libgles2 libglvnd-dev libegl1-mesa-dev
+
+# --------------------- Vulkan SDK (LunarG Repo) ---------------------
+# https://vulkan.lunarg.com/
+# https://vulkan-tutorial.com/Development_environment#page_Linux
+RUN --mount=type=cache,target=/var/cache/apt \
+    wget -qO - https://packages.lunarg.com/lunarg-signing-key-pub.asc | apt-key add - && \
+    wget -qO /etc/apt/sources.list.d/lunarg-vulkan-1.3.283-focal.list https://packages.lunarg.com/vulkan/1.3.283/lunarg-vulkan-1.3.283-focal.list && \
+    apt-get update && apt-get install -qq -y --no-install-recommends \
+    vulkan-sdk vulkan-tools libvulkan-dev vulkan-validationlayers-dev spirv-tools libvulkan1
+
+COPY docker/config/nvidia_icd.json /usr/share/vulkan/icd.d/nvidia_icd.json
+COPY docker/config/10_nvidia.json /usr/share/glvnd/egl_vendor.d/10_nvidia.json
+
+# --------------------- Create non-root sudo User ---------------------
+RUN addgroup --gid ${USER_GID_ARG} ${USER_NAME_ARG} && \
+    adduser --disabled-password --home /home/${USER_NAME_ARG} --shell "/bin/zsh" --gecos "" --uid ${USER_UID_ARG} --gid ${USER_GID_ARG} ${USER_NAME_ARG} && \
+    usermod -aG sudo ${USER_NAME_ARG} && \
+    echo "${USER_NAME_ARG} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+# --------------------- Install ROS1 Noetic ---------------------
+# https://wiki.ros.org/noetic/Installation/Ubuntu
+RUN --mount=type=cache,target=/var/cache/apt \
+    echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list && \
+    curl -s https://raw.githubusercontent.com/ros/rosdistro/master/ros.asc | sudo apt-key add - && \
+    apt-get update && apt-get install -qq -y --no-install-recommends ${ROS1_APT_PACKAGES_ARG} && \
+    source /opt/ros/noetic/setup.bash && \
+    apt-get update && apt-get install -qq -y --no-install-recommends \
+    python3-rosdep python3-rosinstall python3-rosinstall-generator python3-wstool \
+    ros-noetic-ddynamic-reconfigure ros-noetic-image-geometry ros-noetic-camera-info-manager ros-noetic-rgbd-launch && \
+    # Bootstrap Rosdep
+    rosdep init && \
+    # Create catkin workspace
+    mkdir -p ${CATWIN_WS_DIR_ARG}/src && \
+    chown -R ${USER_NAME_ARG}:${USER_GID_ARG} ${CATWIN_WS_DIR_ARG} && \
+    chmod -R g=u ${CATWIN_WS_DIR_ARG}
+
+
+# ---------------------- Install librealsense 2.50.0 ---------------------
+# https://github.com/IntelRealSense/librealsense
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-key adv --keyserver keyserver.ubuntu.com --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE && \
+    add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u && \
+    apt-get update && apt-get install -qq -y --no-install-recommends \
+    librealsense2-udev-rules librealsense2 librealsense2-dkms librealsense2-utils librealsense2-dev \
+    ros-noetic-realsense2-camera ros-noetic-realsense2-description
+
+# --------------------- Install Azure Kinect SDK ---------------------
+# https://github.com/microsoft/Azure-Kinect-Sensor-SDK
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt-get update && apt-get install -qq -y --no-install-recommends libsoundio1 && \
+    wget -q https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/libk/libk4a1.4/libk4a1.4_1.4.1_amd64.deb && \
+    wget -q https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/libk/libk4a1.4-dev/libk4a1.4-dev_1.4.1_amd64.deb && \
+    wget -q https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/libk/libk4abt1.1/libk4abt1.1_1.1.2_amd64.deb && \
+    wget -q https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/libk/libk4abt1.1-dev/libk4abt1.1-dev_1.1.2_amd64.deb && \
+    wget -q https://packages.microsoft.com/ubuntu/18.04/prod/pool/main/k/k4a-tools/k4a-tools_1.4.1_amd64.deb && \
+    echo 'libk4a1.4 libk4a1.4/accepted-eula-hash string 0f5d5c5de396e4fee4c0753a21fee0c1ed726cf0316204edda484f08cb266d76' | debconf-set-selections && \
+    echo 'libk4abt1.1 libk4abt1.1/accepted-eula-hash string 03a13b63730639eeb6626d24fd45cf25131ee8e8e0df3f1b63f552269b176e38' | debconf-set-selections && \
+    dpkg -i libk4a1.4_1.4.1_amd64.deb && \
+    dpkg -i libk4a1.4-dev_1.4.1_amd64.deb && \
+    dpkg -i libk4abt1.1_1.1.2_amd64.deb && \
+    dpkg -i libk4abt1.1-dev_1.1.2_amd64.deb && \
+    dpkg -i k4a-tools_1.4.1_amd64.deb && \
+    rm *.deb && \
+    # Fix CMake config files
+    sudo sed -i 's/find_dependency(k4a 1.4 REQUIRED)/find_dependency(k4a 1.4.1 REQUIRED)/g' /usr/lib/cmake/k4abt/k4abtConfig.cmake
+
+COPY docker/config/99-k4a.rules /etc/udev/rules.d/99-k4a.rules
+
+
+# --------------------- Clean up apt cache ---------------------
+RUN apt-get -y autoremove && apt-get clean autoclean && rm -rf /var/lib/apt/lists/*
+
+# --------------------- Install Miniconda3 ---------------------
+RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+    bash miniconda.sh -b -p /opt/conda && rm miniconda.sh && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    find /opt/conda/ -follow -type f -name '*.a' -delete && \
+    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
+    /opt/conda/bin/conda install mamba -c conda-forge && \
+    /opt/conda/bin/conda clean -afqy && \
+    chown -R ${USER_NAME_ARG}:${USER_GID_ARG} /opt/conda && \
+    chmod -R g=u /opt/conda
+
+# --------------------- Switch to Non-root User ---------------------
+SHELL ["/bin/zsh", "-c"]
+USER ${USER_NAME_ARG}
+ENV HOME=/home/${USER_NAME_ARG}
+WORKDIR ${HOME}
+
+# --------------------- Install Oh My Zsh ---------------------
+# https://ohmyz.sh/
+RUN /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
+    zstyle ':omz:update' mode disabled && \
+    sed -i 's/robbyrussell/candy/g' ${HOME}/.zshrc
+
+# --------------------- Install ROS Packages ---------------------
+RUN source /opt/ros/noetic/setup.zsh && \
+    # Update rosdep
+    rosdep update --rosdistro noetic && \
+    # Initialize catkin workspace
+    cd ${CATWIN_WS_DIR_ARG}/src && catkin_init_workspace && \
+    # Install Azure Kinect ROS Driver
+    cd ${CATWIN_WS_DIR_ARG}/src && git clone https://github.com/microsoft/Azure_Kinect_ROS_Driver.git && \
+    cd ${CATWIN_WS_DIR_ARG} && catkin_make clean && catkin_make --force-cmake -DCMAKE_BUILD_TYPE=Release -DCATKIN_ENABLE_TESTING=False && catkin_make install && \
+    # Install Apriltag 3.3.0 and Apriltag_ROS 3.2.1
+    mkdir -p ${CATWIN_WS_DIR_ARG}/apriltag_ros/src && \
+    cd ${CATWIN_WS_DIR_ARG}/apriltag_ros/src && git clone https://github.com/AprilRobotics/apriltag.git && cd apriltag && git checkout tags/v3.3.0 && \
+    cd ${CATWIN_WS_DIR_ARG}/apriltag_ros/src && git clone https://github.com/AprilRobotics/apriltag_ros.git && cd apriltag_ros && git checkout tags/3.2.1 && \
+    cd ${CATWIN_WS_DIR_ARG}/apriltag_ros/ && catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release && \
+    # Append source to .zshrc
+    echo "source /opt/ros/noetic/setup.zsh" >> ${HOME}/.zshrc && \
+    echo "source ${CATWIN_WS_DIR_ARG}/devel/setup.zsh" >> ${HOME}/.zshrc
+
+# --------------------- Configure Conda ---------------------
+RUN echo "export PATH=/opt/conda/bin:\$PATH" >> ${HOME}/.zshrc && \
+    /opt/conda/bin/conda init zsh && \
+    /opt/conda/bin/conda config --add channels conda-forge && \
+    /opt/conda/bin/conda config --set ssl_verify no && \
+    /opt/conda/bin/conda config --set show_channel_urls True && \
+    /opt/conda/bin/conda config --set channel_priority strict && \
+    /opt/conda/bin/conda config --set auto_activate_base false
+
+# # --------------------- For Isaac Bindings ---------------------
+# RUN mkdir -p ${HOME}/.cache/ov && \
+#     mkdir -p ${HOME}/.cache/pip && \
+#     mkdir -p ${HOME}/.cache/nvidia/GLCache &&  \
+#     mkdir -p ${HOME}/.nv/ComputeCache && \
+#     mkdir -p ${HOME}/.nvidia-omniverse/logs && \
+#     mkdir -p ${HOME}/.local/share/ov/data && \
+#     mkdir -p ${HOME}/Documents
+
+# ---------------------- Set workspace directory ---------------------
+WORKDIR ${HOME}/code

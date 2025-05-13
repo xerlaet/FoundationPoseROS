@@ -125,6 +125,8 @@ python tools/run_foundation_pose_panel.py \
 - Step2-1: Fetch images from ROS topic
   ![fetch_image](./docs/resources/images/fdpose_panel_fetch_image.png)
 - Step2-2: Segment the object
+  - `ctr + left click` to add positive points
+  - `shift + right click` to add negative points
   ![segment object](./docs/resources/images/fdpose_panel_segment_image.png)
 - Step2-3: Add the mask image
   ![add mask image](./docs/resources/images/fdpose_panel_add_mask.png)

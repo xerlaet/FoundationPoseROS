@@ -23,7 +23,7 @@ from pose_toolkit.utils import PROJ_ROOT
 
 
 class FoundationPoseNode:
-    def __init__(self, cam_K, mesh_file=None, est_refine_iter=15, track_refine_iter=5, device="cuda"):
+    def __init__(self, cam_K, mesh_file=None, est_refine_iter=15, track_refine_iter=3, device="cuda"):
         set_seed(0)
 
         self._device = device
@@ -56,7 +56,8 @@ class FoundationPoseNode:
         except Exception as e:
             rospy.logerr_once(f"Node '{self._node_id}' initialization failed: {e}.")
 
-        self._fd_pose_frame_id = f"fd_pose_debug_optical_frame"
+        # self._fd_pose_frame_id = f"fd_pose_debug_optical_frame"
+        self._fd_pose_frame_id = f"816612061646_color_optical_frame"
         self._imagePub = rospy.Publisher(self._pubImageTopic, Image, queue_size=2)
         self._posePub = rospy.Publisher(self._pubPoseTopic, PoseStamped, queue_size=2)
 

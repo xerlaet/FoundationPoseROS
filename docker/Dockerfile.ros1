@@ -122,7 +122,7 @@ RUN wget -q https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.s
     ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
     find /opt/conda/ -follow -type f -name '*.a' -delete && \
     find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
-    /opt/conda/bin/conda install mamba -c conda-forge && \
+    # /opt/conda/bin/conda install mamba -c conda-forge && \
     /opt/conda/bin/conda clean -afqy && \
     chown -R ${USER_NAME_ARG}:${USER_GID_ARG} /opt/conda && \
     chmod -R g=u /opt/conda

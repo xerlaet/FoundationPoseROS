@@ -1,0 +1,43 @@
+#####################################
+# Outside the Docker Container
+#####################################
+
+# launch roscore
+
+roscore
+
+# launch realsense camera
+
+bash scripts/launch_realsense_camera.sh
+
+
+# launch rviz
+
+rviz -d config/rviz/FoundationPoseROS1_RS_new.rviz
+
+
+#####################################
+# Inside the Docker Container
+#####################################
+
+# run the container
+
+bash docker/container_handler.sh run ros1
+
+# enter the container
+
+bash docker/container_handler.sh enter ros1
+
+# activate conda env
+
+conda activate $PWD/env
+
+# launch foundationpose
+
+python tools/run_foundation_pose_panel.py --color_topic /816612061646/color/image_raw --depth_topic /816612061646/aligned_depth_to_color/image_raw
+
+# check fps fdpose
+
+rostopic hz /fd_pose/track/pose
+
+

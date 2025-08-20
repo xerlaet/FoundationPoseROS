@@ -57,7 +57,7 @@ def run_foundation_pose_node(topic_dict, obj_file, device):
         rgb_image, depth_image = images
 
         ob_in_cam = fd_pose_node.track_one(rgb_image, depth_image)
-        vis = fd_pose_node.draw_debug_image(rgb_image, ob_in_cam)
+        vis = fd_pose_node.draw_debug_image(rgb_image.copy(), ob_in_cam)
 
         # Publish image
         fd_pose_node.publish_image(vis[:, :, ::-1], rospy.Time.now())

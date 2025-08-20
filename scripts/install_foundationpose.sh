@@ -11,11 +11,11 @@ log_message "Initializing FoundationPose submodule..."
 # else
 #     handle_error "Failed to initialize FoundationPose submodule."
 # fi
-if git clone --recursive https://github.com/NVlabs/FoundationPose.git "${FD_POSE_DIR}"; then
-    log_message "FoundationPose submodule cloned successfully."
-else
-    handle_error "Failed to clone FoundationPose submodule."
-fi
+# if git clone --recursive https://github.com/NVlabs/FoundationPose.git "${FD_POSE_DIR}"; then
+#    log_message "FoundationPose submodule cloned successfully."
+# else
+#     handle_error "Failed to clone FoundationPose submodule."
+# fi
 
 # Install Python dependencies from requirements_fdpose.txt
 log_message "Installing Python dependencies from requirements_fdpose.txt..."

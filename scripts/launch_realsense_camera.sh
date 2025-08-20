@@ -11,12 +11,13 @@ if [ "$1" -ge "${#RS_CAMERAS[@]}" ]; then
   exit 1
 fi
 
-if [ $# -eq 0 ]; then
-  echo "Usage: bash ${0} <camera_id>"
-  exit 1
-fi
+#if [ $# -eq 0 ]; then
+#  echo "Usage: bash ${0} <camera_id>"
+#  exit 1
+#fi
 
-CAM=${RS_CAMERAS[$1]}
+#CAM=${RS_CAMERAS[$1]}
+CAM=816612061646
 
 roslaunch ${RS_LAUNCH_FILE} \
   serial_no:=${CAM} \
